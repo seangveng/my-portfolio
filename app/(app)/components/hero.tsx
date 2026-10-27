@@ -1,19 +1,19 @@
 "use client";
 
-import { IconBrandGithub, IconBrandLinkedin } from "@tabler/icons-react";
-import { motion } from "framer-motion";
-import { ArrowDown, ArrowRight, Sparkles } from "lucide-react";
-import Image from "next/image";
 import { useEffect, useState } from "react";
+import Image from "next/image";
+import Link from "next/link";
+import { ArrowDown, Code2 } from "lucide-react";
+import { IconBrandLinkedin, IconGitBranch } from "@tabler/icons-react";
 
-type HeroSettings = {
+interface HeroSettings {
   heroTitle: string;
   heroDescription: string;
   developerTitle: string;
   profileImageUrl: string;
   githubUrl: string;
   linkedinUrl: string;
-};
+}
 
 const DEFAULT_SETTINGS: HeroSettings = {
   heroTitle: "សូមស្វាគមន៍! ខ្ញុំឈ្មោះ ស៊ូ ស៊ាងវេង គឺជាអ្នកអភិវឌ្ឍន៍គេហទំព័រ។",
@@ -26,30 +26,28 @@ const DEFAULT_SETTINGS: HeroSettings = {
 };
 
 export default function Hero() {
+  // Show default content immediately without waiting for the API.
   const [settings, setSettings] = useState<HeroSettings>(DEFAULT_SETTINGS);
 
-  const [displayedText, setDisplayedText] = useState("");
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [settingsLoaded, setSettingsLoaded] = useState(false);
-
-  // Load public settings from MongoDB.
   useEffect(() => {
-    let active = true;
+    let cancelled = false;
+    const controller = new AbortController();
 
     async function loadSettings() {
       try {
         const response = await fetch("/api/settings/public", {
           cache: "no-store",
+          signal: controller.signal,
         });
 
         if (!response.ok) {
-          throw new Error(`Settings request failed: ${response.status}`);
+          throw new Error(`Failed to load settings: ${response.status}`);
         }
 
         const data = await response.json();
         const saved = data.settings ?? data;
 
-        if (!active) return;
+        if (cancelled || !saved) return;
 
         setSettings({
           heroTitle: saved.heroTitle || DEFAULT_SETTINGS.heroTitle,
@@ -63,225 +61,148 @@ export default function Hero() {
           linkedinUrl: saved.linkedinUrl || DEFAULT_SETTINGS.linkedinUrl,
         });
       } catch (error) {
-        console.error("Failed to load Hero settings:", error);
-      } finally {
-        if (active) setSettingsLoaded(true);
+        if (error instanceof Error && error.name !== "AbortError") {
+          console.error("Unable to load public hero settings:", error);
+        }
+
+        // Keep default content visible if the API fails.
       }
     }
 
-    void loadSettings();
+    loadSettings();
 
     return () => {
-      active = false;
+      cancelled = true;
+      controller.abort();
     };
   }, []);
-
-  // Typewriter animation, including when the saved title changes.
-  useEffect(() => {
-    if (!settingsLoaded) return;
-
-    let delay = isDeleting ? 35 : 75;
-
-    if (!isDeleting && displayedText === settings.heroTitle) {
-      delay = 2000;
-    }
-
-    if (isDeleting && displayedText === "") {
-      delay = 400;
-    }
-
-    const timer = window.setTimeout(() => {
-      if (!isDeleting) {
-        if (displayedText === settings.heroTitle) {
-          setIsDeleting(true);
-        } else {
-          setDisplayedText(
-            settings.heroTitle.slice(0, displayedText.length + 1),
-          );
-        }
-      } else {
-        if (displayedText === "") {
-          setIsDeleting(false);
-        } else {
-          setDisplayedText(displayedText.slice(0, -1));
-        }
-      }
-    }, delay);
-
-    return () => window.clearTimeout(timer);
-  }, [displayedText, isDeleting, settings.heroTitle, settingsLoaded]);
-
-  // Reset the animation when the administrator saves a different title.
-  useEffect(() => {
-    setDisplayedText("");
-    setIsDeleting(false);
-  }, [settings.heroTitle]);
 
   return (
     <section
       id="home"
-      className="relative min-h-screen overflow-hidden bg-black text-white"
+      className="relative flex min-h-screen items-center overflow-hidden bg-white px-6 py-24 dark:bg-neutral-950 sm:px-10 lg:px-16"
     >
-      {/* Background effects */}
-      <div className="pointer-events-none absolute inset-0">
-        <div className="absolute left-1/2 top-1/3 h-[600px] w-[600px] -translate-x-1/2 rounded-full bg-emerald-500/15 blur-[150px]" />
-        <div className="absolute right-0 top-0 h-[500px] w-[500px] rounded-full bg-teal-500/10 blur-[150px]" />
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(16,185,129,0.04)_1px,transparent_1px),linear-gradient(to_bottom,rgba(16,185,129,0.04)_1px,transparent_1px)] bg-[size:64px_64px]" />
+      {/* Background decoration */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 overflow-hidden"
+      >
+        <div className="absolute -right-32 -top-32 h-96 w-96 rounded-full bg-blue-500/10 blur-3xl" />
+
+        <div className="absolute -bottom-32 -left-32 h-96 w-96 rounded-full bg-purple-500/10 blur-3xl" />
+
+        <div className="absolute inset-0 bg-[radial-gradient(#a3a3a3_0.7px,transparent_0.7px)] [background-size:24px_24px] opacity-20" />
       </div>
 
-      <div className="relative mx-auto flex min-h-screen max-w-7xl items-center px-4 pb-20 pt-32 sm:px-6 lg:px-8">
-        <div className="grid w-full items-center gap-12 lg:grid-cols-2">
-          {/* Hero content */}
-          <div>
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-              className="mb-6 inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 shadow-[0_0_20px_rgba(16,185,129,0.2)]"
-            >
-              <Sparkles size={14} className="text-emerald-400" />
-              <span className="text-sm font-medium text-emerald-300">
-                {settings.developerTitle}
-              </span>
-            </motion.div>
+      <div className="relative mx-auto grid w-full max-w-7xl items-center gap-14 lg:grid-cols-2 lg:gap-20">
+        {/* Text content */}
+        <div className="order-2 space-y-7 lg:order-1">
+          {/* Developer badge */}
+          <div className="inline-flex items-center gap-2 rounded-full border border-neutral-200 bg-white/80 px-4 py-2 text-sm font-medium text-neutral-700 shadow-sm backdrop-blur dark:border-neutral-800 dark:bg-neutral-900/80 dark:text-neutral-300">
+            <Code2 className="h-4 w-4 text-blue-500" />
 
-            <motion.h1
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.1 }}
-              className="min-h-[180px] max-w-4xl text-4xl font-bold leading-[1.3] tracking-tight sm:min-h-[220px] sm:text-6xl lg:text-7xl"
-            >
-              <span className="font-[family-name:var(--font-kantumruy)]">
-                {displayedText}
-              </span>
-              <span className="animate-pulse text-emerald-400">|</span>
-            </motion.h1>
+            <span>{settings.developerTitle}</span>
 
-            <motion.p
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-              className="mt-4 max-w-xl text-base leading-7 text-neutral-400 sm:text-lg"
-            >
-              {settings.heroDescription}
-            </motion.p>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.3 }}
-              className="mt-9 flex flex-wrap gap-4"
-            >
-              <a
-                href="#projects"
-                className="group inline-flex items-center gap-2 rounded-full bg-emerald-400 px-6 py-3.5 text-sm font-semibold text-black transition-all duration-300 hover:bg-emerald-300 hover:shadow-[0_0_25px_rgba(16,185,129,0.5)]"
-              >
-                View My Work
-                <ArrowRight
-                  size={17}
-                  className="transition-transform group-hover:translate-x-1"
-                />
-              </a>
-
-              <a
-                href="#contact"
-                className="rounded-full border border-emerald-500/30 bg-emerald-500/5 px-6 py-3.5 text-sm font-semibold text-white transition-all duration-300 hover:border-emerald-500/50 hover:bg-emerald-500/15"
-              >
-                Let&apos;s Work Together
-              </a>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.6, delay: 0.5 }}
-              className="mt-10 flex flex-wrap items-center gap-5"
-            >
-              {settings.githubUrl && (
-                <a
-                  href={settings.githubUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label="GitHub profile"
-                  className="text-neutral-500 transition hover:text-emerald-400"
-                >
-                  <IconBrandGithub size={20} />
-                </a>
-              )}
-
-              {settings.linkedinUrl && (
-                <a
-                  href={settings.linkedinUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label="LinkedIn profile"
-                  className="text-neutral-500 transition hover:text-emerald-400"
-                >
-                  <IconBrandLinkedin size={20} />
-                </a>
-              )}
-
-              <span className="h-px w-12 bg-emerald-500/20" />
-
-              <span className="text-xs text-neutral-500">
-                Available for opportunities
-              </span>
-            </motion.div>
+            <span className="relative ml-1 flex h-2 w-2">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-green-500" />
+            </span>
           </div>
 
-          {/* Profile image */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.8 }}
-            className="relative mx-auto mt-10 w-full max-w-lg lg:mt-0"
-          >
-            <div className="relative aspect-square overflow-hidden rounded-[2.5rem] border border-emerald-500/30 bg-neutral-950 shadow-[0_0_60px_rgba(16,185,129,0.2)]">
+          {/* Main title */}
+          <h1 className="max-w-3xl whitespace-pre-line text-3xl font-bold leading-relaxed tracking-tight text-neutral-900 dark:text-white sm:text-4xl md:text-5xl lg:text-5xl xl:text-6xl">
+            {settings.heroTitle}
+          </h1>
+
+          {/* Description */}
+          <p className="max-w-2xl text-base leading-8 text-neutral-600 dark:text-neutral-400 sm:text-lg">
+            {settings.heroDescription}
+          </p>
+
+          {/* Action buttons */}
+          <div className="flex flex-wrap items-center gap-4 pt-2">
+            <Link
+              href="#projects"
+              className="inline-flex items-center gap-2 rounded-xl bg-neutral-900 px-6 py-3.5 font-semibold text-white shadow-lg transition hover:-translate-y-0.5 hover:bg-neutral-700 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
+            >
+              View My Work
+              <ArrowDown className="h-4 w-4" />
+            </Link>
+
+            <Link
+              href="#contact"
+              className="inline-flex items-center rounded-xl border border-neutral-300 px-6 py-3.5 font-semibold text-neutral-800 transition hover:-translate-y-0.5 hover:bg-neutral-100 dark:border-neutral-700 dark:text-neutral-200 dark:hover:bg-neutral-900"
+            >
+              Contact Me
+            </Link>
+          </div>
+
+          {/* Social links */}
+          <div className="flex items-center gap-4 pt-3">
+            <span className="text-sm text-neutral-500">Connect with me</span>
+
+            <a
+              href={settings.githubUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="GitHub"
+              className="rounded-lg border border-neutral-200 p-2.5 text-neutral-700 transition hover:border-neutral-400 hover:bg-neutral-100 dark:border-neutral-800 dark:text-neutral-300 dark:hover:bg-neutral-900"
+            >
+              <IconGitBranch className="h-5 w-5" />
+            </a>
+
+            <a
+              href={settings.linkedinUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="LinkedIn"
+              className="rounded-lg border border-neutral-200 p-2.5 text-neutral-700 transition hover:border-neutral-400 hover:bg-neutral-100 dark:border-neutral-800 dark:text-neutral-300 dark:hover:bg-neutral-900"
+            >
+              <IconBrandLinkedin className="h-5 w-5" />
+            </a>
+          </div>
+        </div>
+
+        {/* Profile image */}
+        <div className="order-1 flex justify-center lg:order-2">
+          <div className="relative">
+            {/* Decorative rings */}
+            <div className="absolute -inset-5 rounded-[2rem] border border-blue-500/20 rotate-6" />
+
+            <div className="absolute -inset-3 rounded-[2rem] border border-purple-500/20 -rotate-3" />
+
+            {/* Image container */}
+            <div className="relative h-[320px] w-[280px] overflow-hidden rounded-[1.75rem] border border-neutral-200 bg-neutral-100 shadow-2xl dark:border-neutral-800 dark:bg-neutral-900 sm:h-[420px] sm:w-[360px] lg:h-[480px] lg:w-[400px]">
               <Image
                 src={settings.profileImageUrl}
-                alt="Portfolio profile"
+                alt="Sou Seangveng - Full Stack Developer"
                 fill
                 priority
                 unoptimized
-                sizes="(max-width: 768px) 100vw, 600px"
-                className="scale-[1.02] object-cover object-center"
+                sizes="(max-width: 640px) 280px, (max-width: 1024px) 360px, 400px"
+                className="object-cover object-center"
               />
-
-              <div className="absolute inset-0 bg-gradient-to-t from-[#050B08] via-transparent to-transparent opacity-90" />
-              <div className="absolute inset-0 bg-gradient-to-r from-[#050B08]/40 via-transparent to-transparent" />
-
-              <motion.div
-                animate={{ y: [0, 8, 0] }}
-                transition={{
-                  duration: 3.5,
-                  repeat: Infinity,
-                  ease: "easeInOut",
-                  delay: 0.5,
-                }}
-                className="absolute left-6 top-6 rounded-2xl border border-emerald-500/30 bg-neutral-950/80 px-4 py-3 shadow-xl backdrop-blur-md"
-              >
-                <p className="text-xs font-medium uppercase tracking-wider text-neutral-400">
-                  Specialized in
-                </p>
-                <p className="mt-1.5 text-sm font-bold text-emerald-400">
-                  Web Development
-                </p>
-              </motion.div>
             </div>
-          </motion.div>
+
+            {/* Floating label */}
+            <div className="absolute -bottom-6 -left-5 rounded-2xl border border-neutral-200 bg-white/95 px-5 py-4 shadow-xl backdrop-blur dark:border-neutral-800 dark:bg-neutral-900/95 sm:-left-10">
+              <div className="flex items-center gap-3">
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400">
+                  <Code2 className="h-6 w-6" />
+                </div>
+
+                <div>
+                  <p className="font-bold text-neutral-900 dark:text-white">
+                    Full Stack
+                  </p>
+
+                  <p className="text-sm text-neutral-500">Web Developer</p>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
-
-      {/* Scroll indicator */}
-      <motion.a
-        href="#about"
-        animate={{ y: [0, 8, 0] }}
-        transition={{ duration: 2, repeat: Infinity }}
-        className="absolute bottom-8 left-1/2 hidden -translate-x-1/2 flex-col items-center gap-2 text-neutral-500 transition hover:text-emerald-400 md:flex"
-      >
-        <span className="text-[10px] uppercase tracking-[0.3em]">Scroll</span>
-        <ArrowDown size={14} className="text-emerald-400" />
-      </motion.a>
     </section>
   );
 }
