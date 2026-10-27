@@ -109,7 +109,7 @@ export async function POST(request: NextRequest) {
     const secret = process.env.ADMIN_SESSION_SECRET;
 
     if (!secret) {
-      console.error("ADMIN_SESSION_SECRET is not configured.");
+      // console.error("ADMIN_SESSION_SECRET is not configured.");
 
       return NextResponse.json(
         {

@@ -20,7 +20,7 @@ const DEFAULT_SETTINGS: HeroSettings = {
   heroDescription:
     "I'm a Full Stack Developer focused on creating modern, responsive and scalable web applications with great user experiences.",
   developerTitle: "Full Stack Developer",
-  profileImageUrl: "/images/veng.jpg",
+  profileImageUrl: "/images/veng.JPG",
   githubUrl: "https://github.com",
   linkedinUrl: "https://linkedin.com",
 };
